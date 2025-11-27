@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>爱心射手 - 终极浪漫版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a1a;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: radial-gradient(circle at center, #2c3e50 0%, #000000 100%);
+            cursor: crosshair;
+        }
+        
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            z-index: 10;
+        }
+
+        .top-bar {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* 进度条样式升级 */
+        .progress-container {
+            width: 100%;
+            max-width: 400px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            margin: 0 auto;
+            overflow: hidden;
+            border: 2px solid rgba(255, 107, 107, 0.5);
+            position: relative;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.2);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff6b6b, #f368e0, #ff9f43);
+            background-size: 200% 100%;
+            animation: gradientMove 2s linear infinite;
+            transition: width 0.3s ease-out;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+        }
+
+        .stat-item {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            background: rgba(0,0,0,0.3);
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+
+        /* 浮动文字特效 */
+        .floating-text {
+            position: absolute;
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 24px;
+            pointer-events: none;
+            animation: floatUp 1.2s ease-out forwards;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        .combo-text {
+            font-size: 32px;
+            color: #f368e0;
+            text-shadow: 0 0 15px #f368e0;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+            20% { transform: translate(-50%, -20px) scale(1.2); opacity: 1; }
+            80% { transform: translate(-50%, -60px) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -80px) scale(0.8); opacity: 0; }
+        }
+
+        /* 胜利界面 */
+        .victory-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(20, 20, 20, 0.95);
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            border: 4px solid #ff6b6b;
+            color: white;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 100;
+            pointer-events: auto;
+            box-shadow: 0 0 50px rgba(255, 107, 107, 0.5);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .victory-screen.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .victory-title {
+            font-size: 36px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            animation: heartbeat 1.5s infinite;
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff9f43);
+            border: none;
+            padding: 12px 40px;
+            color: white;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.6);
+            transition: transform 0.2s;
+        }
+
+        .restart-btn:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.1); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.1); }
+            60% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="ui-layer">
+        <div class="top-bar">
+            <div class="stats-bar">
+                <div class="stat-item">🏆 <span id="score">0</span></div>
+                <div class="stat-item">🔥 x<span id="combo">0</span></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-fill" id="progressFill"></div>
+                <div class="progress-text">爱意填充: <span id="progressText">0</span>%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="victory-screen" id="victoryScreen">
+        <h1 class="victory-title">❤️ 任务完成 ❤️</h1>
+        <p style="font-size: 18px; line-height: 1.6; color: #ddd;">
+            感受到小刘对小丁<br>满满的爱意了吗？
+        </p>
+        <div style="margin-top: 20px; font-size: 24px; color: #ffd700; font-weight: bold;">
+            最终得分: <span id="finalScore">0</span>
+        </div>
+        <button class="restart-btn" onclick="location.reload()">再来一局</button>
+    </div>
+
+    <script>
+        // 常量定义
+        const COLORS = {
+            HEART: '#ff6b6b',
+            HEART_VARIANTS: ['#ff6b6b', '#ff8787', '#f368e0', '#ff9f43', '#ff5252'],
+            ENEMY_NORMAL: '#e74c3c',
+            ENEMY_FAST: '#f1c40f',
+            ENEMY_TANK: '#9b59b6',
+            
+            // 道具颜色
+            BOX_SPREAD: '#feca57', 
+            BOX_SPLASH: '#ff9ff3', 
+            BOX_RAPID:  '#54a0ff', 
+            BOX_RAIN:   '#a55eea',
+            BOX_FREEZE: '#48dbfb', // 新道具：冰冻(青)
+            BOX_WING:   '#1dd1a1', // 新道具：僚机(绿)
+            BOX_BOMB:   '#2d3436', 
+            
+            PARTICLES: ['#ff6b6b', '#ff9f43', '#54a0ff', '#5f27cd', '#c8d6e5']
+        };
+
+        // 连击文案配置 - 降低门槛，增加更多词汇
+        const COMBO_MESSAGES = [
+            { count: 3, text: "心动!" },
+            { count: 6, text: "好棒!" },
+            { count: 10, text: "渐入佳境!" },
+            { count: 15, text: "爱意泛滥!" },
+            { count: 20, text: "天生一对!" },
+            { count: 30, text: "至死不渝!" },
+            { count: 50, text: "神仙眷侣!" },
+            { count: 80, text: "爱LoveU!" }
+        ];
+
+        class HeartShooterGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // UI 元素
+                this.scoreElement = document.getElementById('score');
+                this.comboElement = document.getElementById('combo');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+                this.victoryScreen = document.getElementById('victoryScreen');
+                this.finalScoreElement = document.getElementById('finalScore');
+                
+                // 初始化
+                this.setupCanvas();
+                this.initGameVariables();
+                this.setupEventListeners();
+                this.gameLoop();
+            }
+            
+            setupCanvas() {
+                const resizeCanvas = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                    this.width = this.canvas.width;
+                    this.height = this.canvas.height;
+                    
+                    if (this.initialized) {
+                        this.calculateLayout();
+                        if (!this.textPixels || this.textPixels.length === 0) {
+                            this.initializeHiddenText();
+                        }
+                    }
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+            }
+            
+            calculateLayout() {
+                this.cannon = {
+                    x: this.width / 2,
+                    y: this.height * 0.88,
+                    width: 40,
+                    height: 60,
+                    angle: -Math.PI / 2,
+                    recoil: 0,
+                    targetAngle: -Math.PI / 2
+                };
+                
+                this.textArea = {
+                    x: 0,
+                    y: 0,
+                    width: this.width,
+                    height: this.height * 0.45
+                };
+            }
+            
+            initGameVariables() {
+                this.score = 0;
+                this.combo = 0;
+                this.projectiles = [];
+                this.enemies = [];
+                this.items = []; 
+                this.particles = [];
+                this.magnetizedHearts = []; 
+                this.floatingTexts = []; 
+                
+                this.lastEnemySpawn = 0;
+                this.enemyInterval = 1200;
+                this.lastItemSpawn = 0;
+                
+                // 阶段性奖励标记
+                this.milestone50 = false;
+                this.milestone80 = false;
+                
+                this.buffs = {
+                    spread: { active: false, endTime: 0 }, 
+                    rapid:  { active: false, endTime: 0, nextShot: 0 },
+                    freeze: { active: false, endTime: 0 }, // 冻结敌人
+                    wing:   { active: false, endTime: 0, nextShot: 0 }  // 僚机自动攻击
+                };
+                
+                this.shake = 0;
+                this.isVictory = false;
+                this.initialized = true;
+                this.firstUnoccupiedIndex = 0;
+                
+                this.calculateLayout();
+                this.initializeHiddenText();
+            }
+            
+            initializeHiddenText() {
+                const offCtx = document.createElement('canvas').getContext('2d');
+                offCtx.canvas.width = this.width;
+                offCtx.canvas.height = this.textArea.height;
+                
+                const fontSize = Math.min(this.width * 0.22, this.textArea.height * 0.6);
+                this.fontSize = fontSize;
+                offCtx.font = `900 ${fontSize}px "Microsoft YaHei", sans-serif`;
+                offCtx.fillStyle = '#fff';
+                offCtx.textAlign = 'center';
+                offCtx.textBaseline = 'middle';
+                offCtx.fillText("小丁", this.width / 2, this.textArea.height / 2);
+                
+                const imgData = offCtx.getImageData(0, 0, this.width, this.textArea.height);
+                this.textPixels = [];
+                
+                const step = 6;
+                for (let y = 0; y < this.textArea.height; y += step) {
+                    for (let x = 0; x < this.width; x += step) {
+                        if (imgData.data[(y * this.width + x) * 4 + 3] > 128) {
+                            this.textPixels.push({
+                                x: x,
+                                y: y,
+                                occupied: false,
+                                heart: null
+                            });
+                        }
+                    }
+                }
+                
+                this.totalPixels = this.textPixels.length;
+                this.filledPixels = 0;
+                this.firstUnoccupiedIndex = 0;
+            }
+            
+            setupEventListeners() {
+                const updateAim = (x, y) => {
+                    if (this.isVictory) return;
+                    const dx = x - this.cannon.x;
+                    const dy = y - this.cannon.y;
+                    this.cannon.targetAngle = Math.atan2(dy, dx);
+                };
+                
+                const shoot = () => {
+                    if (!this.isVictory) this.fireProjectile();
+                };
+
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    updateAim(t.clientX, t.clientY);
+                    this.cannon.angle = this.cannon.targetAngle;
+                    if (!this.buffs.rapid.active) {
+                        shoot();
+                    }
+                    this.isTouching = true; 
+                }, { passive: false });
+
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const t = e.touches[0];
+                    updateAim(t.clientX, t.clientY);
+                }, { passive: false });
+
+                this.canvas.addEventListener('touchend', (e) => {
+                    this.isTouching = false;
+                });
+
+                this.canvas.addEventListener('mousemove', (e) => {
+                    updateAim(e.clientX, e.clientY);
+                });
+                
+                this.canvas.addEventListener('mousedown', (e) => {
+                    if (!this.buffs.rapid.active) {
+                        shoot();
+                    }
+                    this.isMouseDown = true;
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isMouseDown = false;
+                });
+            }
+            
+            getRandomHeartColor() {
+                const variants = COLORS.HEART_VARIANTS;
+                return variants[Math.floor(Math.random() * variants.length)];
+            }
+
+            // 新增：触发穿透大爱心
+            firePiercingHeart() {
+                const a = this.cannon.angle;
+                this.projectiles.push({
+                    x: this.cannon.x,
+                    y: this.cannon.y,
+                    vx: Math.cos(a) * 10,
+                    vy: Math.sin(a) * 10,
+                    size: 30, // 巨大
+                    active: true,
+                    state: 'piercing', // 穿透模式
+                    color: '#fff', // 彩虹色在绘制时处理
+                    trail: []
+                });
+                this.showFloatingText(this.width/2, this.height/2, "超级穿透!", "#fff");
+                this.shake = 15;
+            }
+
+            fireProjectile(overrideX, overrideY, overrideAngle, isAuto = false) {
+                if (!isAuto) this.cannon.recoil = 12;
+                
+                const startX = overrideX || this.cannon.x;
+                const startY = overrideY || this.cannon.y;
+                const baseAngle = overrideAngle !== undefined ? overrideAngle : this.cannon.angle;
+
+                const spawnBullet = (angleOffset = 0, color = null) => {
+                    const a = baseAngle + angleOffset;
+                    const bulletColor = color || this.getRandomHeartColor();
+                    
+                    this.projectiles.push({
+                        x: startX + Math.cos(a) * (isAuto ? 0 : 30),
+                        y: startY + Math.sin(a) * (isAuto ? 0 : 30),
+                        vx: Math.cos(a) * 14,
+                        vy: Math.sin(a) * 14,
+                        size: 12, // 增大碰撞体积，降低难度
+                        active: true,
+                        state: 'normal',
+                        targetPixel: null,
+                        color: bulletColor,
+                        trail: []
+                    });
+                };
+                
+                spawnBullet(0);
+                
+                if (this.buffs.spread.active && !isAuto) {
+                    spawnBullet(-0.25);
+                    spawnBullet(0.25);
+                }
+                
+                if (this.combo >= 10 && !isAuto) {
+                     spawnBullet((Math.random() - 0.5) * 0.5);
+                }
+                
+                if (!isAuto) this.createParticles(startX, startY, 5, '#fff', 3);
+            }
+            
+            findNearbyTarget(p) {
+                while(this.firstUnoccupiedIndex < this.textPixels.length && this.textPixels[this.firstUnoccupiedIndex].occupied) {
+                    this.firstUnoccupiedIndex++;
+                }
+                
+                if (this.firstUnoccupiedIndex >= this.textPixels.length) return; 
+
+                const topY = this.textPixels[this.firstUnoccupiedIndex].y;
+                const activeBandLimit = topY + 80; 
+                const range = 65; // 稍微增加感应范围，降低难度
+                
+                for (let i = this.firstUnoccupiedIndex; i < this.textPixels.length; i++) {
+                    const pixel = this.textPixels[i];
+                    if (pixel.occupied) continue;
+                    
+                    if (pixel.y > activeBandLimit) break;
+                    
+                    const dx = pixel.x - p.x;
+                    const dy = pixel.y - p.y;
+                    
+                    if (Math.abs(dx) > range || Math.abs(dy) > range) continue;
+                    
+                    if (dx*dx + dy*dy < range * range) {
+                        p.targetPixel = pixel;
+                        p.state = 'homing';
+                        pixel.occupied = true;
+                        this.filledPixels++;
+                        return;
+                    }
+                }
+            }
+            
+            spawnEnemy() {
+                const typeRand = Math.random();
+                let type = 'normal';
+                let hp = 1;
+                let size = 20; // 稍微变大，容易打
+                let speed = 1.5; // 基础速度降低，降低难度
+                let color = COLORS.ENEMY_NORMAL;
+                
+                if (typeRand > 0.9) {
+                    type = 'tank'; hp = 3; size = 28; speed = 0.8; color = COLORS.ENEMY_TANK;
+                } else if (typeRand > 0.7) {
+                    type = 'fast'; hp = 1; size = 15; speed = 2.5; color = COLORS.ENEMY_FAST;
+                }
+                
+                this.enemies.push({
+                    x: Math.random() * (this.width - 40) + 20,
+                    y: -40,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: Math.random() * 1.5 + speed,
+                    type: type,
+                    hp: hp,
+                    maxHp: hp,
+                    size: size,
+                    color: color,
+                    active: true
+                });
+            }
+            
+            spawnItem() {
+                // 丰富道具池，降低炸弹概率
+                // 0-0.15: 炸弹 
+                // 0.15-0.3: 散射
+                // 0.3-0.45: 福袋
+                // 0.45-0.6: 急速
+                // 0.6-0.75: 爱心雨
+                // 0.75-0.85: 冰冻 (新)
+                // 0.85-1.0: 僚机 (新)
+                const rand = Math.random();
+                let type = 'bomb';
+                
+                if (rand > 0.85) type = 'wing';
+                else if (rand > 0.75) type = 'freeze';
+                else if (rand > 0.6) type = 'rain';
+                else if (rand > 0.45) type = 'rapid';
+                else if (rand > 0.3) type = 'splash'; 
+                else if (rand > 0.15) type = 'spread';
+                
+                this.items.push({
+                    x: Math.random() * (this.width - 60) + 30,
+                    y: -40,
+                    vy: 2.5,
+                    type: type,
+                    active: true,
+                    rot: 0
+                });
+            }
+
+            triggerLoveRain() {
+                const rainCount = 40; 
+                for(let i=0; i<rainCount; i++) {
+                    const isMagnetic = Math.random() > 0.6; 
+                    const startX = Math.random() * this.width;
+                    const startY = -Math.random() * 300; 
+                    
+                    const p = {
+                        x: startX,
+                        y: startY,
+                        vx: 0,
+                        vy: Math.random() * 3 + 2, 
+                        size: Math.random() * 8 + 6,
+                        active: true,
+                        state: isMagnetic ? 'rain_magnetic' : 'rain_falling', 
+                        color: this.getRandomHeartColor(),
+                        trail: [],
+                        sway: Math.random() * 100, 
+                        targetPixel: null
+                    };
+                    
+                    if (isMagnetic) {
+                        while(this.firstUnoccupiedIndex < this.textPixels.length && this.textPixels[this.firstUnoccupiedIndex].occupied) {
+                            this.firstUnoccupiedIndex++;
+                        }
+                        let targetIndex = this.firstUnoccupiedIndex + Math.floor(Math.random() * 20);
+                        if (targetIndex < this.textPixels.length) {
+                            const pixel = this.textPixels[targetIndex];
+                            if (!pixel.occupied) {
+                                pixel.occupied = true;
+                                this.filledPixels++;
+                                p.targetPixel = pixel;
+                            } else {
+                                p.state = 'rain_falling'; 
+                            }
+                        } else {
+                            p.state = 'rain_falling';
+                        }
+                    }
+                    
+                    this.projectiles.push(p);
+                }
+            }
+
+            triggerSplashEffect(x, y) {
+                const count = 10; // 稍微增加
+                for(let i=0; i<count; i++) {
+                    while(this.firstUnoccupiedIndex < this.textPixels.length && this.textPixels[this.firstUnoccupiedIndex].occupied) {
+                        this.firstUnoccupiedIndex++;
+                    }
+                    let targetIndex = this.firstUnoccupiedIndex + i; 
+                    if (targetIndex >= this.textPixels.length) break;
+
+                    const pixel = this.textPixels[targetIndex];
+                    if (pixel && !pixel.occupied) {
+                        pixel.occupied = true;
+                        this.filledPixels++;
+                        
+                        this.projectiles.push({
+                            x: x, 
+                            y: y,
+                            vx: (Math.random() - 0.5) * 10, 
+                            vy: (Math.random() - 0.5) * 10,
+                            size: 12,
+                            active: true,
+                            state: 'homing',
+                            targetPixel: pixel,
+                            color: this.getRandomHeartColor(), 
+                            trail: []
+                        });
+                    }
+                }
+                this.createParticles(x, y, 20, COLORS.BOX_SPLASH, 6);
+            }
+            
+            update() {
+                const now = Date.now();
+                
+                const diff = this.cannon.targetAngle - this.cannon.angle;
+                this.cannon.angle += diff * 0.2;
+                if (this.cannon.recoil > 0) this.cannon.recoil *= 0.8;
+                if (this.shake > 0) this.shake *= 0.9;
+                
+                // 急速模式逻辑
+                if (this.buffs.rapid.active && now < this.buffs.rapid.endTime) {
+                    if (now > this.buffs.rapid.nextShot) {
+                        this.fireProjectile();
+                        this.buffs.rapid.nextShot = now + 80; 
+                    }
+                } else {
+                    this.buffs.rapid.active = false;
+                }
+
+                // 僚机模式逻辑
+                if (this.buffs.wing.active && now < this.buffs.wing.endTime) {
+                    if (now > this.buffs.wing.nextShot) {
+                        // 左右两个僚机自动发射
+                        this.fireProjectile(this.cannon.x - 50, this.cannon.y, -Math.PI/2, true);
+                        this.fireProjectile(this.cannon.x + 50, this.cannon.y, -Math.PI/2, true);
+                        this.buffs.wing.nextShot = now + 200;
+                    }
+                } else {
+                    this.buffs.wing.active = false;
+                }
+                
+                // 冻结BUFF失效检测
+                if (this.buffs.freeze.active && now > this.buffs.freeze.endTime) {
+                    this.buffs.freeze.active = false;
+                }
+
+                // 进度检查与彩蛋
+                const progressPct = this.filledPixels / this.totalPixels;
+                if (progressPct >= 0.5 && !this.milestone50) {
+                    this.milestone50 = true;
+                    this.firePiercingHeart();
+                }
+                if (progressPct >= 0.8 && !this.milestone80) {
+                    this.milestone80 = true;
+                    this.firePiercingHeart();
+                }
+
+                if (progressPct >= 0.98 && !this.isVictory) {
+                    this.triggerVictory();
+                }
+                
+                if (this.isVictory) {
+                    this.updateVictory();
+                    return;
+                }
+                
+                // 敌人生成 (难度降低，间隔稍微变大)
+                if (now - this.lastEnemySpawn > this.enemyInterval) {
+                    this.spawnEnemy();
+                    this.lastEnemySpawn = now;
+                    this.enemyInterval = Math.max(500, 1400 - this.score * 0.4);
+                }
+                
+                // 道具生成 (频率大大提高，4-6秒)
+                if (now - this.lastItemSpawn > 4000 + Math.random() * 2000) {
+                    this.spawnItem();
+                    this.lastItemSpawn = now;
+                }
+                
+                if (this.buffs.spread.active && now > this.buffs.spread.endTime) this.buffs.spread.active = false;
+                
+                this.updateEntities();
+                this.checkCollisions();
+                this.updateUI();
+            }
+            
+            updateEntities() {
+                this.projectiles.forEach(p => {
+                    if (p.state === 'piercing') {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.color = `hsl(${(Date.now()/5)%360}, 100%, 70%)`;
+                        p.trail.push({x: p.x, y: p.y});
+                        if (p.trail.length > 20) p.trail.shift();
+                        if (p.x < -50 || p.x > this.width+50 || p.y < -50) p.active = false;
+                        return; 
+                    }
+
+                    if (p.state === 'rain_falling' || p.state === 'rain_magnetic') {
+                        p.y += p.vy;
+                        p.x += Math.sin(p.y / 50 + p.sway) * 2;
+                        
+                        if (p.state === 'rain_magnetic' && p.targetPixel) {
+                            if (Math.abs(p.y - p.targetPixel.y) < 50) {
+                                p.state = 'homing'; 
+                            }
+                        }
+                        
+                        if (p.y > this.height) p.active = false;
+                        return;
+                    }
+
+                    p.trail.push({x: p.x, y: p.y});
+                    if (p.trail.length > 8) p.trail.shift();
+                    
+                    if (p.state === 'normal') {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        if (p.y < this.textArea.height + 100 && !p.targetPixel) {
+                            this.findNearbyTarget(p);
+                        }
+                    } else if (p.state === 'homing') {
+                        if (p.targetPixel) {
+                            const dx = p.targetPixel.x - p.x;
+                            const dy = p.targetPixel.y - p.y;
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            
+                            p.vx += (dx - p.vx) * 0.3;
+                            p.vy += (dy - p.vy) * 0.3;
+                            
+                            p.x += p.vx;
+                            p.y += p.vy;
+                            
+                            if (dist < 15) {
+                                p.active = false;
+                                this.magnetizedHearts.push({
+                                    x: p.targetPixel.x,
+                                    y: p.targetPixel.y,
+                                    size: p.size,
+                                    color: p.color
+                                });
+                                this.createParticles(p.x, p.y, 3, p.color, 1);
+                                this.score += 5;
+                            }
+                        } else {
+                            p.active = false;
+                        }
+                    }
+                    
+                    if (p.x < -50 || p.x > this.width + 50 || p.y < -50 || p.y > this.height + 50) p.active = false;
+                });
+                this.projectiles = this.projectiles.filter(p => p.active);
+                
+                this.enemies.forEach(e => {
+                    // 如果被冻结，移动极慢
+                    if (this.buffs.freeze.active) {
+                        e.y += e.vy * 0.1;
+                    } else {
+                        e.y += e.vy;
+                    }
+                    
+                    if (e.y > this.height) {
+                        e.active = false;
+                        this.combo = 0;
+                    }
+                });
+                this.enemies = this.enemies.filter(e => e.active);
+                
+                this.items.forEach(i => {
+                    i.y += i.vy;
+                    i.rot += 0.05;
+                    if (i.y > this.height) i.active = false;
+                });
+                this.items = this.items.filter(i => i.active);
+                
+                this.particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.05;
+                    p.size *= 0.95;
+                });
+                this.particles = this.particles.filter(p => p.life > 0);
+            }
+            
+            checkCollisions() {
+                this.projectiles.forEach(p => {
+                    if (!p.active) return;
+                    if (p.state === 'homing' || p.state === 'rain_falling' || p.state === 'rain_magnetic') return;
+                    
+                    this.enemies.forEach(e => {
+                        if (e.active) {
+                            // 增加判定范围，更容易打中
+                            const dist = Math.hypot(p.x - e.x, p.y - e.y);
+                            const hit = dist < p.size + e.size + 5; 
+                            
+                            if (hit) {
+                                if (p.state !== 'piercing') p.active = false;
+                                
+                                e.hp -= (p.state === 'piercing' ? 10 : 1);
+                                if (e.hp <= 0) {
+                                    e.active = false;
+                                    this.score += 20;
+                                    this.combo++;
+                                    this.createParticles(e.x, e.y, 10, e.color, 5);
+                                    this.shake = 5;
+                                    
+                                    const msg = COMBO_MESSAGES.find(m => m.count === this.combo);
+                                    if (msg) {
+                                        this.showFloatingText(this.width/2, this.height/2 - 100, msg.text, '#f368e0', true);
+                                    } else if (this.combo > 0 && this.combo % 5 === 0) { // 降低到5连击就提示
+                                        this.showFloatingText(e.x, e.y, this.combo + "连击!", '#ffd700');
+                                    }
+                                } else {
+                                    this.createParticles(e.x, e.y, 3, '#fff', 2);
+                                }
+                            }
+                        }
+                    });
+                    
+                    this.items.forEach(i => {
+                        if (i.active) {
+                            const dist = Math.hypot(p.x - i.x, p.y - i.y);
+                            if (dist < p.size + 20) { // 道具很容易吃到
+                                i.active = false;
+                                if (p.state !== 'piercing') p.active = false;
+                                
+                                if (i.type === 'spread') {
+                                    this.buffs.spread.active = true;
+                                    this.buffs.spread.endTime = Date.now() + 6000;
+                                    this.showFloatingText(i.x, i.y, "散射火力!", COLORS.BOX_SPREAD);
+                                } 
+                                else if (i.type === 'splash') {
+                                    this.triggerSplashEffect(i.x, i.y);
+                                    this.showFloatingText(i.x, i.y, "缤纷散花!", COLORS.BOX_SPLASH);
+                                }
+                                else if (i.type === 'rapid') {
+                                    this.buffs.rapid.active = true;
+                                    this.buffs.rapid.endTime = Date.now() + 4000; 
+                                    this.showFloatingText(i.x, i.y, "急速狂热!", COLORS.BOX_RAPID);
+                                }
+                                else if (i.type === 'rain') {
+                                    this.triggerLoveRain();
+                                    this.showFloatingText(this.width/2, 100, "浪漫爱心雨!", COLORS.BOX_RAIN, true);
+                                }
+                                else if (i.type === 'freeze') {
+                                    this.buffs.freeze.active = true;
+                                    this.buffs.freeze.endTime = Date.now() + 5000;
+                                    this.showFloatingText(this.width/2, this.height/2, "永恒时刻!", COLORS.BOX_FREEZE, true);
+                                }
+                                else if (i.type === 'wing') {
+                                    this.buffs.wing.active = true;
+                                    this.buffs.wing.endTime = Date.now() + 8000;
+                                    this.showFloatingText(i.x, i.y, "守护之翼!", COLORS.BOX_WING);
+                                }
+                                else { // bomb
+                                    this.score = Math.max(0, this.score - 50);
+                                    this.combo = 0;
+                                    this.shake = 20;
+                                    this.showFloatingText(i.x, i.y, "哎呀!", '#ff4757');
+                                    this.createParticles(i.x, i.y, 20, '#000', 8);
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+            
+            createParticles(x, y, count, color, speed) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const v = Math.random() * speed;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * v,
+                        vy: Math.sin(angle) * v,
+                        life: 1.0,
+                        color: color,
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            }
+            
+            showFloatingText(x, y, text, color = '#ffd700', isLarge = false) {
+                const el = document.createElement('div');
+                el.className = isLarge ? 'floating-text combo-text' : 'floating-text';
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                el.style.color = color;
+                if(isLarge) el.style.textShadow = `0 0 20px ${color}`;
+                el.innerText = text;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 1200);
+            }
+            
+            triggerVictory() {
+                this.isVictory = true;
+                this.finalScoreElement.innerText = this.score;
+                this.victoryScreen.classList.add('show');
+                
+                setInterval(() => {
+                    const x = Math.random() * this.width;
+                    const y = Math.random() * this.height * 0.5;
+                    this.createParticles(x, y, 30, COLORS.PARTICLES[Math.floor(Math.random()*5)], 8);
+                }, 400);
+            }
+            
+            updateVictory() {
+                this.ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                this.updateEntities();
+                this.drawParticles();
+                this.drawMagnetizedHearts();
+            }
+            
+            updateUI() {
+                this.scoreElement.innerText = this.score;
+                this.comboElement.innerText = this.combo;
+                const pct = Math.min(100, Math.floor((this.filledPixels / this.totalPixels) * 100));
+                this.progressFill.style.width = pct + '%';
+                this.progressText.innerText = pct;
+            }
+            
+            draw() {
+                this.ctx.fillStyle = 'rgba(26, 26, 26, 0.4)';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                this.ctx.save();
+                if (this.shake > 0) {
+                    const dx = (Math.random()-0.5) * this.shake;
+                    const dy = (Math.random()-0.5) * this.shake;
+                    this.ctx.translate(dx, dy);
+                }
+                
+                this.drawCannon();
+                this.drawEntities();
+                this.drawParticles();
+                
+                // 绘制僚机
+                if (this.buffs.wing.active) {
+                    this.drawWingman(this.cannon.x - 50, this.cannon.y);
+                    this.drawWingman(this.cannon.x + 50, this.cannon.y);
+                }
+
+                // 绘制冰冻效果蒙版
+                if (this.buffs.freeze.active) {
+                    this.ctx.fillStyle = 'rgba(72, 219, 251, 0.15)';
+                    this.ctx.fillRect(0, 0, this.width, this.height);
+                    // 屏幕边缘结冰装饰（简单绘制）
+                    this.ctx.strokeStyle = 'rgba(72, 219, 251, 0.5)';
+                    this.ctx.lineWidth = 10;
+                    this.ctx.strokeRect(0, 0, this.width, this.height);
+                }
+
+                this.ctx.restore();
+            }
+
+            drawWingman(x, y) {
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                this.ctx.fillStyle = COLORS.BOX_WING;
+                // 简单的三角形僚机
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, -10);
+                this.ctx.lineTo(-8, 10);
+                this.ctx.lineTo(8, 10);
+                this.ctx.closePath();
+                this.ctx.fill();
+                this.ctx.restore();
+            }
+            
+            drawCannon() {
+                this.ctx.save();
+                this.ctx.translate(this.cannon.x, this.cannon.y + this.cannon.recoil);
+                this.ctx.rotate(this.cannon.angle);
+                
+                this.ctx.fillStyle = '#ff6b6b';
+                this.ctx.fillRect(-10, -10, 20, 40);
+                this.ctx.fillStyle = '#ff9f43';
+                this.ctx.fillRect(-5, 0, 10, 30);
+                
+                this.ctx.restore();
+                
+                this.ctx.beginPath();
+                this.ctx.arc(this.cannon.x, this.cannon.y, 25, 0, Math.PI*2);
+                this.ctx.fillStyle = '#fff';
+                this.ctx.fill();
+                this.ctx.lineWidth = 4;
+                this.ctx.strokeStyle = '#ff6b6b';
+                this.ctx.stroke();
+            }
+            
+            drawEntities() {
+                this.drawMagnetizedHearts();
+                
+                this.enemies.forEach(e => {
+                    this.ctx.fillStyle = e.color;
+                    this.ctx.beginPath();
+                    if (e.type === 'tank') {
+                        this.ctx.rect(e.x - e.size/2, e.y - e.size/2, e.size, e.size);
+                    } else {
+                        this.ctx.arc(e.x, e.y, e.size, 0, Math.PI*2);
+                    }
+                    this.ctx.fill();
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.fillRect(e.x - 5, e.y - 4, 3, 3);
+                    this.ctx.fillRect(e.x + 2, e.y - 4, 3, 3);
+                });
+                
+                this.items.forEach(i => {
+                    this.ctx.save();
+                    this.ctx.translate(i.x, i.y);
+                    this.ctx.rotate(i.rot);
+                    
+                    let color;
+                    let symbol;
+                    if (i.type === 'splash') { color = COLORS.BOX_SPLASH; symbol = '🎁'; }
+                    else if (i.type === 'rapid') { color = COLORS.BOX_RAPID; symbol = '⚡'; }
+                    else if (i.type === 'spread') { color = COLORS.BOX_SPREAD; symbol = '✨'; }
+                    else if (i.type === 'rain') { color = COLORS.BOX_RAIN; symbol = '☁️'; }
+                    else if (i.type === 'freeze') { color = COLORS.BOX_FREEZE; symbol = '❄️'; }
+                    else if (i.type === 'wing') { color = COLORS.BOX_WING; symbol = '🚀'; }
+                    else { color = COLORS.BOX_BOMB; symbol = '💣'; }
+                    
+                    this.ctx.fillStyle = color;
+                    this.ctx.fillRect(-12, -12, 24, 24);
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.font = '16px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(symbol, 0, 0);
+                    this.ctx.restore();
+                });
+                
+                this.projectiles.forEach(p => {
+                    if (p.state === 'piercing') {
+                        this.ctx.save();
+                        this.ctx.shadowBlur = 10;
+                        this.ctx.shadowColor = p.color;
+                        this.drawHeartShape(p.x, p.y, p.size, p.color);
+                        this.ctx.restore();
+                        return;
+                    }
+
+                    if (p.trail.length > 1) {
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = p.color;
+                        this.ctx.lineWidth = p.size/2;
+                        p.trail.forEach((t, i) => {
+                            if (i===0) this.ctx.moveTo(t.x, t.y);
+                            else this.ctx.lineTo(t.x, t.y);
+                        });
+                        this.ctx.stroke();
+                    }
+                    this.drawHeartShape(p.x, p.y, p.size, p.color);
+                });
+            }
+
+            drawMagnetizedHearts() {
+                this.magnetizedHearts.forEach(h => {
+                    this.drawHeartShape(h.x, h.y, h.size, h.color);
+                });
+            }
+            
+            drawHeartShape(x, y, size, color) {
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                const s = size / 10;
+                this.ctx.moveTo(x, y + s * 3);
+                this.ctx.bezierCurveTo(x, y, x - s * 5, y, x - s * 5, y + s * 3);
+                this.ctx.bezierCurveTo(x - s * 5, y + s * 5, x, y + s * 8, x, y + s * 10);
+                this.ctx.bezierCurveTo(x, y + s * 8, x + s * 5, y + s * 5, x + s * 5, y + s * 3);
+                this.ctx.bezierCurveTo(x + s * 5, y, x, y, x, y + s * 3);
+                this.ctx.fill();
+            }
+            
+            drawParticles() {
+                this.particles.forEach(p => {
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.globalAlpha = p.life;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                    this.ctx.fill();
+                });
+                this.ctx.globalAlpha = 1;
+            }
+            
+            gameLoop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+        
+        window.onload = () => new HeartShooterGame();
+    </script>
+</body>
+</html>
