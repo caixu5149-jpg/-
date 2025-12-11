@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Christmas Tree</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- MediaPipe Dependencies (Global Scope) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <!-- Tween.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <!-- Import Map for Three.js ES Modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="container"></div>
+
+    <!-- Webcam Feed (Hidden but processed) -->
+    <video id="input_video" style="display:none"></video>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        <div id="controls">
+            <button id="fullscreen-btn" class="glass-btn">⛶ Fullscreen</button>
+            <label for="photo-upload" class="glass-btn">
+                📷 Upload Photos
+                <input type="file" id="photo-upload" multiple accept="image/*" style="display:none">
+            </label>
+        </div>
+        <div id="status-text">Waiting for camera...</div>
+        <div id="instructions">
+            <p>🖐 Open Hand: Scatter & Rotate</p>
+            <p>✊ Fist: Assemble Tree</p>
+            <p>👌 Pinch: Grab Photo</p>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
