@@ -43,6 +43,7 @@ let pinchTarget = null; // The object currently being pinched
 
 // Raycaster for interactions
 const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2(); // Reusable vector for raycasting to avoid GC
 
 // UI Elements
 const videoElement = document.getElementById('input_video');
@@ -65,7 +66,8 @@ function init() {
 
     // 3. Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    // Optimize: Cap pixel ratio at 2 to improve performance on high-DPI devices
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ReinhardToneMapping;
     document.getElementById('container').appendChild(renderer.domElement);
@@ -225,8 +227,8 @@ function createParticles() {
         particlesData.push({
             mesh: mesh,
             treePos: treePos,
-            scatterPos: scatterPos,
-            currentVelocity: new THREE.Vector3()
+            scatterPos: scatterPos
+            // Removed currentVelocity as it was unused
         });
     }
 }
@@ -283,7 +285,8 @@ function handlePinchInteraction() {
 
     // Raycast to find photo/particle
     // Map hand coordinates (0-1) to Normalised Device Coordinates (-1 to 1)
-    const ndc = new THREE.Vector2(
+    // Reuse global ndc vector
+    ndc.set(
         (handPositionScreen.x * 2) - 1,
         -(handPositionScreen.y * 2) + 1
     );
