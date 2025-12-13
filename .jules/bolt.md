@@ -1,0 +1,3 @@
+## 2024-05-23 - Material Instantiation Anti-Pattern in Loops
+**Learning:** Creating new `Material` instances (e.g., `MeshStandardMaterial`, `SpriteMaterial`) inside a loop for a particle system significantly increases draw calls and memory usage, and is a common WebGL performance bottleneck.
+**Action:** When particles share properties (like color or texture), pre-create the materials outside the loop and reuse them. Only create unique materials if specific per-instance material properties (like opacity or emissive color) need to be animated individually (unless using InstancedMesh with attributes).
