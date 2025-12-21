@@ -153,6 +153,19 @@ function createParticles() {
     // Fixed: variable name Emojis -> EMOJIS
     const emojiTextures = EMOJIS.map(emoji => createTextureFromEmoji(emoji));
 
+    // Performance Optimization: Reuse Material Instances
+    // Instead of creating ~700 material instances, we reuse them based on color/texture.
+    // This reduces WebGL state changes and memory overhead.
+    const colorMaterials = COLORS.map(color => new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.1,
+        metalness: 0.8, // High metalness for reflection
+        transparent: true,
+        opacity: 0.9
+    }));
+
+    const emojiMaterials = emojiTextures.map(tex => new THREE.SpriteMaterial({ map: tex }));
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         const type = Math.random();
         let mesh;
@@ -168,18 +181,13 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
+            const matIndex = Math.floor(Math.random() * colorMaterials.length);
+            const mat = colorMaterials[matIndex];
             mesh = new THREE.Mesh(geo, mat);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
+            const matIndex = Math.floor(Math.random() * emojiMaterials.length);
+            const mat = emojiMaterials[matIndex];
             mesh = new THREE.Sprite(mat);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
