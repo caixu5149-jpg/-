@@ -149,6 +149,30 @@ function createParticles() {
     const geometryCone = new THREE.ConeGeometry(0.5, 1, 16);
     const geometryTetra = new THREE.TetrahedronGeometry(0.6);
 
+    // Material Cache to reduce draw calls and memory usage
+    const standardMaterialCache = {};
+    const spriteMaterialCache = {};
+
+    const getStandardMaterial = (color) => {
+        if (!standardMaterialCache[color]) {
+            standardMaterialCache[color] = new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.1,
+                metalness: 0.8, // High metalness for reflection
+                transparent: true,
+                opacity: 0.9
+            });
+        }
+        return standardMaterialCache[color];
+    };
+
+    const getSpriteMaterial = (texture, index) => {
+        if (!spriteMaterialCache[index]) {
+            spriteMaterialCache[index] = new THREE.SpriteMaterial({ map: texture });
+        }
+        return spriteMaterialCache[index];
+    };
+
     // Pre-generate textures for emojis to improve performance
     // Fixed: variable name Emojis -> EMOJIS
     const emojiTextures = EMOJIS.map(emoji => createTextureFromEmoji(emoji));
@@ -168,18 +192,14 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            const mat = getStandardMaterial(color);
             mesh = new THREE.Mesh(geo, mat);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
+            const texIndex = Math.floor(Math.random() * emojiTextures.length);
+            const tex = emojiTextures[texIndex];
+            const mat = getSpriteMaterial(tex, texIndex);
             mesh = new THREE.Sprite(mat);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
