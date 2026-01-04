@@ -30,7 +30,7 @@ const EASINGS = [
 
 // --- Globals ---
 let scene, camera, renderer, composer, controls;
-let particlesGroup = new THREE.Group();
+window.particlesGroup = new THREE.Group();
 let particlesData = []; // { mesh, treePos: Vector3, scatterPos: Vector3, type: 'mesh'|'sprite' }
 let photoTextures = [];
 let treeTopperLight;
@@ -153,6 +153,17 @@ function createParticles() {
     // Fixed: variable name Emojis -> EMOJIS
     const emojiTextures = EMOJIS.map(emoji => createTextureFromEmoji(emoji));
 
+    // ⚡ Bolt Optimization: Pool materials to reduce draw calls and memory
+    const standardMaterials = COLORS.map(color => new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.1,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.9
+    }));
+
+    const spriteMaterials = emojiTextures.map(tex => new THREE.SpriteMaterial({ map: tex }));
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         const type = Math.random();
         let mesh;
@@ -168,18 +179,11 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
+            const mat = standardMaterials[Math.floor(Math.random() * standardMaterials.length)];
             mesh = new THREE.Mesh(geo, mat);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
+            const mat = spriteMaterials[Math.floor(Math.random() * spriteMaterials.length)];
             mesh = new THREE.Sprite(mat);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
