@@ -35,6 +35,10 @@ let particlesData = []; // { mesh, treePos: Vector3, scatterPos: Vector3, type: 
 let photoTextures = [];
 let treeTopperLight;
 
+// Material pooling caches
+const standardMaterialCache = {};
+const spriteMaterialCache = {};
+
 // Interaction State
 let handState = 'OPEN'; // 'OPEN', 'FIST', 'PINCH'
 let handPositionScreen = new THREE.Vector2(); // 0-1 normalized
@@ -168,18 +172,30 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
+            const colorHex = COLORS[Math.floor(Math.random() * COLORS.length)];
+            let mat = standardMaterialCache[colorHex];
+            if (!mat) {
+                mat = new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    roughness: 0.1,
+                    metalness: 0.8, // High metalness for reflection
+                    transparent: true,
+                    opacity: 0.9
+                });
+                standardMaterialCache[colorHex] = mat;
+            }
             mesh = new THREE.Mesh(geo, mat);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
+            const emojiIndex = Math.floor(Math.random() * emojiTextures.length);
+            const tex = emojiTextures[emojiIndex];
+
+            let mat = spriteMaterialCache[emojiIndex];
+            if (!mat) {
+                mat = new THREE.SpriteMaterial({ map: tex });
+                spriteMaterialCache[emojiIndex] = mat;
+            }
+
             mesh = new THREE.Sprite(mat);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
