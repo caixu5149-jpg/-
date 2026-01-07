@@ -1,0 +1,3 @@
+## 2024-05-22 - [Optimized Particle Material Reuse]
+**Learning:** Instantiating new Three.js materials in a loop for hundreds of identical objects (differing only by color/texture) causes significant memory and draw call overhead.
+**Action:** Always pre-create and cache materials when variations are finite (e.g., a set of colors). This allows the renderer to batch draw calls and reduces memory fragmentation. For dynamic properties like emission on interaction, check if unique materials are needed or if `InstanceMesh` (with attribute manipulation) or property sharing is viable. In this case, `userData.isPhoto` logic allowed separating unique-material objects from shared-material objects.
