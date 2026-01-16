@@ -153,6 +153,18 @@ function createParticles() {
     // Fixed: variable name Emojis -> EMOJIS
     const emojiTextures = EMOJIS.map(emoji => createTextureFromEmoji(emoji));
 
+    // Pre-create Materials for pooling (Performance Optimization)
+    // Reduce material count from ~700 to 13 (5 MeshStandardMaterial + 8 SpriteMaterial)
+    const meshMaterials = COLORS.map(color => new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.1,
+        metalness: 0.8, // High metalness for reflection
+        transparent: true,
+        opacity: 0.9
+    }));
+
+    const spriteMaterials = emojiTextures.map(tex => new THREE.SpriteMaterial({ map: tex }));
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         const type = Math.random();
         let mesh;
@@ -168,18 +180,13 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
+            // Use pooled material
+            const mat = meshMaterials[Math.floor(Math.random() * meshMaterials.length)];
             mesh = new THREE.Mesh(geo, mat);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
+            // Use pooled material
+            const mat = spriteMaterials[Math.floor(Math.random() * spriteMaterials.length)];
             mesh = new THREE.Sprite(mat);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
