@@ -153,6 +153,22 @@ function createParticles() {
     // Fixed: variable name Emojis -> EMOJIS
     const emojiTextures = EMOJIS.map(emoji => createTextureFromEmoji(emoji));
 
+    // ⚡ Bolt Performance Optimization: Material Pooling
+    // Create shared material instances to reduce draw calls and memory overhead.
+    // Instead of ~700 unique materials, we use ~5 standard materials and 8 sprite materials.
+    const standardMaterialPool = new Map();
+    COLORS.forEach(color => {
+        standardMaterialPool.set(color, new THREE.MeshStandardMaterial({
+            color: color,
+            roughness: 0.1,
+            metalness: 0.8, // High metalness for reflection
+            transparent: true,
+            opacity: 0.9
+        }));
+    });
+
+    const spriteMaterialPool = emojiTextures.map(tex => new THREE.SpriteMaterial({ map: tex }));
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         const type = Math.random();
         let mesh;
@@ -168,18 +184,15 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            // Use pooled material
+            const mat = standardMaterialPool.get(color);
             mesh = new THREE.Mesh(geo, mat);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
+            const emojiIndex = Math.floor(Math.random() * emojiTextures.length);
+            // Use pooled material
+            const mat = spriteMaterialPool[emojiIndex];
             mesh = new THREE.Sprite(mat);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
