@@ -153,6 +153,11 @@ function createParticles() {
     // Fixed: variable name Emojis -> EMOJIS
     const emojiTextures = EMOJIS.map(emoji => createTextureFromEmoji(emoji));
 
+    // Bolt Optimization: Material Pooling
+    // Cache materials to avoid creating duplicate material instances
+    const standardMaterials = {}; // Key: color hex
+    const spriteMaterials = [];   // Index matches emojiTextures
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         const type = Math.random();
         let mesh;
@@ -168,18 +173,34 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
+            // Use pooled material based on color
+            const colorHex = COLORS[Math.floor(Math.random() * COLORS.length)];
+            let mat = standardMaterials[colorHex];
+
+            if (!mat) {
+                mat = new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    roughness: 0.1,
+                    metalness: 0.8, // High metalness for reflection
+                    transparent: true,
+                    opacity: 0.9
+                });
+                standardMaterials[colorHex] = mat;
+            }
+
             mesh = new THREE.Mesh(geo, mat);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
+            // Use pooled material based on texture index
+            const texIndex = Math.floor(Math.random() * emojiTextures.length);
+            let mat = spriteMaterials[texIndex];
+
+            if (!mat) {
+                const tex = emojiTextures[texIndex];
+                mat = new THREE.SpriteMaterial({ map: tex });
+                spriteMaterials[texIndex] = mat;
+            }
+
             mesh = new THREE.Sprite(mat);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
