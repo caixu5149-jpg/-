@@ -1,0 +1,3 @@
+## 2025-01-30 - Material Pooling in Dynamic Scenes
+**Learning:** Material pooling in Three.js significantly reduces draw call overhead but requires strict verification of interaction logic. If interactions modify material properties (like opacity or emissive color) on individual objects, those objects cannot share materials without side effects.
+**Action:** Before implementing pooling, always grep for material property assignments (e.g., `.material.opacity =`, `.material.emissive =`) in the codebase to ensure shared instances won't cause unintended synchronization of visual states across objects.
