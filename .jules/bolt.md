@@ -1,0 +1,3 @@
+## 2026-02-01 - Material Pooling in Interactive Three.js
+**Learning:** Three.js objects can share materials even if they are interactively scaled or transformed, provided they don't modify material-specific properties (like color/emissive) individually. "Unique" glow effects can be handled by swapping to a unique material only on demand, allowing the vast majority of background particles to share a small pool of materials.
+**Action:** Always check if interaction logic modifies `material` properties or `Object3D` properties (scale, position, rotation). If only the latter, pool materials aggressively.
