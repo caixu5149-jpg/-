@@ -141,6 +141,7 @@ function init() {
             }
         }
     });
+
 }
 
 function createParticles() {
@@ -152,6 +153,11 @@ function createParticles() {
     // Pre-generate textures for emojis to improve performance
     // Fixed: variable name Emojis -> EMOJIS
     const emojiTextures = EMOJIS.map(emoji => createTextureFromEmoji(emoji));
+
+    // Performance Optimization: Material Pooling
+    // Reuse materials to reduce draw call overhead and memory usage.
+    const pooledMaterials = {}; // color (int) -> Material
+    const emojiMaterials = emojiTextures.map(tex => new THREE.SpriteMaterial({ map: tex }));
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         const type = Math.random();
@@ -168,19 +174,24 @@ function createParticles() {
             else if (r < 0.75) geo = geometryCone;
             else geo = geometryTetra;
 
-            const mat = new THREE.MeshStandardMaterial({
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                roughness: 0.1,
-                metalness: 0.8, // High metalness for reflection
-                transparent: true,
-                opacity: 0.9
-            });
-            mesh = new THREE.Mesh(geo, mat);
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+            if (!pooledMaterials[color]) {
+                pooledMaterials[color] = new THREE.MeshStandardMaterial({
+                    color: color,
+                    roughness: 0.1,
+                    metalness: 0.8, // High metalness for reflection
+                    transparent: true,
+                    opacity: 0.9
+                });
+            }
+
+            mesh = new THREE.Mesh(geo, pooledMaterials[color]);
         } else {
             // Emoji Sprites
-            const tex = emojiTextures[Math.floor(Math.random() * emojiTextures.length)];
-            const mat = new THREE.SpriteMaterial({ map: tex });
-            mesh = new THREE.Sprite(mat);
+            const texIndex = Math.floor(Math.random() * emojiTextures.length);
+            // Use pooled material
+            mesh = new THREE.Sprite(emojiMaterials[texIndex]);
             mesh.scale.set(1.5, 1.5, 1.5);
             isSprite = true;
         }
